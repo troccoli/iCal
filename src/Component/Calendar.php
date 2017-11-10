@@ -5,8 +5,8 @@
  *
  * (c) Markus Poerschke <markus@eluceo.de>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
  */
 
 namespace Eluceo\iCal\Component;
@@ -19,20 +19,20 @@ class Calendar extends Component
     /**
      * Methods for calendar components.
      *
-     * According to RFP 5545: 3.7.2. Method
+     * According to RFC 5545: 3.7.2. Method
      *
-     * @link http://tools.ietf.org/html/rfc5545#section-3.7.2
+     * @see http://tools.ietf.org/html/rfc5545#section-3.7.2
      *
      * And then according to RFC 2446: 3 APPLICATION PROTOCOL ELEMENTS
-     * @link https://www.ietf.org/rfc/rfc2446.txt
+     * @see https://tools.ietf.org/html/rfc2446#section-3.2
      */
-    const METHOD_PUBLISH        = 'PUBLISH';
-    const METHOD_REQUEST        = 'REQUEST';
-    const METHOD_REPLY          = 'REPLY';
-    const METHOD_ADD            = 'ADD';
-    const METHOD_CANCEL         = 'CANCEL';
-    const METHOD_REFRESH        = 'REFRESH';
-    const METHOD_COUNTER        = 'COUNTER';
+    const METHOD_PUBLISH = 'PUBLISH';
+    const METHOD_REQUEST = 'REQUEST';
+    const METHOD_REPLY = 'REPLY';
+    const METHOD_ADD = 'ADD';
+    const METHOD_CANCEL = 'CANCEL';
+    const METHOD_REFRESH = 'REFRESH';
+    const METHOD_COUNTER = 'COUNTER';
     const METHOD_DECLINECOUNTER = 'DECLINECOUNTER';
 
     /**
@@ -40,18 +40,18 @@ class Calendar extends Component
      *
      * According to RFC 5545: 3.7.1. Calendar Scale
      *
-     * @link http://tools.ietf.org/html/rfc5545#section-3.7
+     * @see http://tools.ietf.org/html/rfc5545#section-3.7
      */
     const CALSCALE_GREGORIAN = 'GREGORIAN';
 
     /**
      * The Product Identifier.
      *
-     * According to RFC 2445: 4.7.3 Product Identifier
+     * According to RFC 5545: 3.7.3 Product Identifier
      *
      * This property specifies the identifier for the product that created the Calendar object.
      *
-     * @link http://www.ietf.org/rfc/rfc2445.txt
+     * @see https://tools.ietf.org/html/rfc5545#section-3.7.3
      *
      * @var string
      */
@@ -77,7 +77,7 @@ class Calendar extends Component
     /**
      * Specifies whether or not the iCalendar file only contains one appointment.
      *
-     * @var boolean
+     * @var bool
      *
      * @see http://msdn.microsoft.com/en-us/library/ee203486(v=exchg.80).aspx
      */
@@ -96,11 +96,23 @@ class Calendar extends Component
      * Specifies a suggested iCalendar file download frequency for clients and
      * servers with sync capabilities.
      *
+     * For example you can set the value to 'P1W' if the calendar should be
+     * synced once a week. Use 'P3H' to sync the file every 3 hours.
+     *
      * @var string
      *
      * @see http://msdn.microsoft.com/en-us/library/ee178699(v=exchg.80).aspx
      */
-    protected $publishedTTL = 'P1W';
+    protected $publishedTTL = null;
+
+    /**
+     * Specifies a color for the calendar in calendar for Apple/Outlook.
+     *
+     * @var string
+     *
+     * @see http://msdn.microsoft.com/en-us/library/ee179588(v=exchg.80).aspx
+     */
+    protected $calendarColor = null;
 
     public function __construct($prodId)
     {
@@ -168,6 +180,18 @@ class Calendar extends Component
     }
 
     /**
+     * @param $calendarColor
+     *
+     * @return $this
+     */
+    public function setCalendarColor($calendarColor)
+    {
+        $this->calendarColor = $calendarColor;
+
+        return $this;
+    }
+
+    /**
      * @param $calendarScale
      *
      * @return $this
@@ -180,7 +204,7 @@ class Calendar extends Component
     }
 
     /**
-     * @param boolean $forceInspectOrOpen
+     * @param bool $forceInspectOrOpen
      *
      * @return $this
      */
@@ -226,6 +250,12 @@ class Calendar extends Component
 
         if ($this->method) {
             $propertyBag->set('METHOD', $this->method);
+        }
+
+        if ($this->calendarColor) {
+            $propertyBag->set('X-APPLE-CALENDAR-COLOR', $this->calendarColor);
+            $propertyBag->set('X-OUTLOOK-COLOR', $this->calendarColor);
+            $propertyBag->set('X-FUNAMBOL-COLOR', $this->calendarColor);
         }
 
         if ($this->calendarScale) {

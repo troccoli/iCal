@@ -5,11 +5,12 @@
  *
  * (c) Markus Poerschke <markus@eluceo.de>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
  */
 
 namespace Eluceo\iCal;
+
 use Eluceo\iCal\Util\ComponentUtil;
 
 /**
@@ -22,7 +23,16 @@ abstract class Component
      *
      * @var Component[]
      */
-    protected $components = array();
+    protected $components = [];
+
+    /**
+     * The order in which the components will be rendered during build.
+     *
+     * Not defined components will be appended at the end.
+     *
+     * @var array
+     */
+    private $componentsBuildOrder = ['VTIMEZONE', 'DAYLIGHT', 'STANDARD'];
 
     /**
      * The type of the concrete Component.
@@ -32,6 +42,15 @@ abstract class Component
      * @return string
      */
     abstract public function getType();
+
+    /**
+     * Building the PropertyBag.
+     *
+     * @abstract
+     *
+     * @return PropertyBag
+     */
+    abstract public function buildPropertyBag();
 
     /**
      * Adds a Component.
@@ -57,7 +76,7 @@ abstract class Component
      */
     public function build()
     {
-        $lines = array();
+        $lines = [];
 
         $lines[] = sprintf('BEGIN:%s', $this->getType());
 
@@ -68,16 +87,11 @@ abstract class Component
             }
         }
 
-        /** @var $component Component */
-        foreach ($this->components as $component) {
-            foreach ($component->build() as $l) {
-                $lines[] = $l;
-            }
-        }
+        $this->buildComponents($lines);
 
         $lines[] = sprintf('END:%s', $this->getType());
 
-        $ret = array();
+        $ret = [];
 
         foreach ($lines as $line) {
             foreach (ComponentUtil::fold($line) as $l) {
@@ -109,10 +123,50 @@ abstract class Component
     }
 
     /**
-     * Building the PropertyBag.
+     * @param $lines
      *
-     * @abstract
-     * @return PropertyBag
+     * @return array
      */
-    abstract public function buildPropertyBag();
+    private function buildComponents(array &$lines)
+    {
+        $componentsByType = [];
+
+        /** @var $component Component */
+        foreach ($this->components as $component) {
+            $type = $component->getType();
+            if (!isset($componentsByType[$type])) {
+                $componentsByType[$type] = [];
+            }
+            $componentsByType[$type][] = $component;
+        }
+
+        // render ordered components
+        foreach ($this->componentsBuildOrder as $type) {
+            if (!isset($componentsByType[$type])) {
+                continue;
+            }
+            foreach ($componentsByType[$type] as $component) {
+                $this->addComponentLines($lines, $component);
+            }
+            unset($componentsByType[$type]);
+        }
+
+        // render all other
+        foreach ($componentsByType as $components) {
+            foreach ($components as $component) {
+                $this->addComponentLines($lines, $component);
+            }
+        }
+    }
+
+    /**
+     * @param array     $lines
+     * @param Component $component
+     */
+    private function addComponentLines(array &$lines, Component $component)
+    {
+        foreach ($component->build() as $l) {
+            $lines[] = $l;
+        }
+    }
 }

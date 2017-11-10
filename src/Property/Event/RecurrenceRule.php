@@ -1,31 +1,42 @@
 <?php
 
+/*
+ * This file is part of the eluceo/iCal package.
+ *
+ * (c) Markus Poerschke <markus@eluceo.de>
+ *
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ */
+
 namespace Eluceo\iCal\Property\Event;
 
-use Eluceo\iCal\Property\ValueInterface;
-use Eluceo\iCal\Property\DateTimeProperty;
 use Eluceo\iCal\ParameterBag;
+use Eluceo\iCal\Property\ValueInterface;
 use InvalidArgumentException;
 
 /**
  * Implementation of Recurrence Rule.
  *
- * @see http://www.ietf.org/rfc/rfc2445.txt 3.3.10.  Recurrence Rule
+ * @see https://tools.ietf.org/html/rfc5545#section-3.8.5.3
  */
 class RecurrenceRule implements ValueInterface
 {
-    const FREQ_YEARLY  = 'YEARLY';
+    const FREQ_YEARLY = 'YEARLY';
     const FREQ_MONTHLY = 'MONTHLY';
-    const FREQ_WEEKLY  = 'WEEKLY';
-    const FREQ_DAILY   = 'DAILY';
+    const FREQ_WEEKLY = 'WEEKLY';
+    const FREQ_DAILY = 'DAILY';
+    const FREQ_HOURLY = 'HOURLY';
+    const FREQ_MINUTELY = 'MINUTELY';
+    const FREQ_SECONDLY = 'SECONDLY';
 
-    const WEEKDAY_SUNDAY    = "SU";
-    const WEEKDAY_MONDAY    = "MO";
-    const WEEKDAY_TUESDAY   = "TU";
-    const WEEKDAY_WEDNESDAY = "WE";
-    const WEEKDAY_THURSDAY  = "TH";
-    const WEEKDAY_FRIDAY    = "FR";
-    const WEEKDAY_SATURDAY  = "SA";
+    const WEEKDAY_SUNDAY = 'SU';
+    const WEEKDAY_MONDAY = 'MO';
+    const WEEKDAY_TUESDAY = 'TU';
+    const WEEKDAY_WEDNESDAY = 'WE';
+    const WEEKDAY_THURSDAY = 'TH';
+    const WEEKDAY_FRIDAY = 'FR';
+    const WEEKDAY_SATURDAY = 'SA';
 
     /**
      * The frequency of an Event.
@@ -45,7 +56,7 @@ class RecurrenceRule implements ValueInterface
     protected $count = null;
 
     /**
-     * @var null|\DateTime
+     * @var null|\DateTimeInterface
      */
     protected $until = null;
 
@@ -94,14 +105,7 @@ class RecurrenceRule implements ValueInterface
      */
     protected $bySecond;
 
-    /**
-     * Return the value of the Property as an escaped string.
-     *
-     * Escape values as per RFC 2445. See http://www.kanzaki.com/docs/ical/text.html
-     *
-     * @return string
-     */
-    public function getEscapedValue()
+    public function getEscapedValue(): string
     {
         return $this->buildParameterBag()->toString();
     }
@@ -187,11 +191,11 @@ class RecurrenceRule implements ValueInterface
     }
 
     /**
-     * @param \DateTime|null $until
+     * @param \DateTimeInterface|null $until
      *
      * @return $this
      */
-    public function setUntil(\DateTime $until = null)
+    public function setUntil(\DateTimeInterface $until = null)
     {
         $this->until = $until;
 
@@ -199,7 +203,7 @@ class RecurrenceRule implements ValueInterface
     }
 
     /**
-     * @return \DateTime|null
+     * @return \DateTimeInterface|null
      */
     public function getUntil()
     {
@@ -227,10 +231,7 @@ class RecurrenceRule implements ValueInterface
      */
     public function setFreq($freq)
     {
-        if (self::FREQ_YEARLY === $freq || self::FREQ_MONTHLY === $freq
-            || self::FREQ_WEEKLY === $freq
-            || self::FREQ_DAILY === $freq
-        ) {
+        if (@constant('static::FREQ_' . $freq) !== null) {
             $this->freq = $freq;
         } else {
             throw new \InvalidArgumentException("The Frequency {$freq} is not supported.");
@@ -289,7 +290,7 @@ class RecurrenceRule implements ValueInterface
      * The BYMONTH rule part specifies a COMMA-separated list of months of the year.
      * Valid values are 1 to 12.
      *
-     * @param integer $month
+     * @param int $month
      *
      * @throws InvalidArgumentException
      *
@@ -310,7 +311,7 @@ class RecurrenceRule implements ValueInterface
      * The BYWEEKNO rule part specifies a COMMA-separated list of ordinals specifying weeks of the year.
      * Valid values are 1 to 53 or -53 to -1.
      *
-     * @param integer $value
+     * @param int $value
      *
      * @return $this
      */
@@ -325,7 +326,7 @@ class RecurrenceRule implements ValueInterface
      * The BYYEARDAY rule part specifies a COMMA-separated list of days of the year.
      * Valid values are 1 to 366 or -366 to -1.
      *
-     * @param integer $day
+     * @param int $day
      *
      * @return $this
      */
@@ -340,7 +341,7 @@ class RecurrenceRule implements ValueInterface
      * The BYMONTHDAY rule part specifies a COMMA-separated list of days of the month.
      * Valid values are 1 to 31 or -31 to -1.
      *
-     * @param integer $day
+     * @param int $day
      *
      * @return $this
      */
@@ -375,7 +376,7 @@ class RecurrenceRule implements ValueInterface
      * The BYHOUR rule part specifies a COMMA-separated list of hours of the day.
      * Valid values are 0 to 23.
      *
-     * @param integer $value
+     * @param int $value
      *
      * @return $this
      *
@@ -396,7 +397,7 @@ class RecurrenceRule implements ValueInterface
      * The BYMINUTE rule part specifies a COMMA-separated list of minutes within an hour.
      * Valid values are 0 to 59.
      *
-     * @param integer $value
+     * @param int $value
      *
      * @return $this
      *
@@ -417,7 +418,7 @@ class RecurrenceRule implements ValueInterface
      * The BYSECOND rule part specifies a COMMA-separated list of seconds within a minute.
      * Valid values are 0 to 60.
      *
-     * @param integer $value
+     * @param int $value
      *
      * @return $this
      *

@@ -5,8 +5,8 @@
  *
  * (c) Markus Poerschke <markus@eluceo.de>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
  */
 
 namespace Eluceo\iCal;
@@ -16,9 +16,11 @@ use Eluceo\iCal\Property\StringValue;
 use Eluceo\iCal\Property\ValueInterface;
 
 /**
- * The Property Class represents a property as defined in RFC 2445.
+ * The Property Class represents a property as defined in RFC 5545.
  *
- * The content of a line (unfolded) will be rendered in this class
+ * The content of a line (unfolded) will be rendered in this class.
+ *
+ * @see https://tools.ietf.org/html/rfc5545#section-3.5
  */
 class Property
 {
@@ -46,7 +48,7 @@ class Property
      * @param       $value
      * @param array $params
      */
-    public function __construct($name, $value, $params = array())
+    public function __construct($name, $value, $params = [])
     {
         $this->name = $name;
         $this->setValue($value);
@@ -64,7 +66,8 @@ class Property
         $line = $this->getName();
 
         // Adding params
-        if ($this->parameterBag->hasParams()) {
+        //@todo added check for $this->parameterBag because doctrine/orm proxies won't execute constructor - ok?
+        if ($this->parameterBag && $this->parameterBag->hasParams()) {
             $line .= ';' . $this->parameterBag->toString();
         }
 
@@ -81,7 +84,7 @@ class Property
      */
     public function toLines()
     {
-        return array($this->toLine());
+        return [$this->toLine()];
     }
 
     /**
@@ -120,7 +123,7 @@ class Property
             $this->value = new ArrayValue($value);
         } else {
             if (!$value instanceof ValueInterface) {
-                throw new \Exception("The value must implement the ValueInterface.");
+                throw new \Exception('The value must implement the ValueInterface.');
             } else {
                 $this->value = $value;
             }
@@ -140,7 +143,7 @@ class Property
     /**
      * @return string
      */
-    public function getName()
+    public function getName(): string
     {
         return $this->name;
     }

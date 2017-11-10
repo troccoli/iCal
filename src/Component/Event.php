@@ -5,8 +5,8 @@
  *
  * (c) Markus Poerschke <markus@eluceo.de>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
  */
 
 namespace Eluceo\iCal\Component;
@@ -14,9 +14,13 @@ namespace Eluceo\iCal\Component;
 use Eluceo\iCal\Component;
 use Eluceo\iCal\Property;
 use Eluceo\iCal\Property\DateTimeProperty;
+use Eluceo\iCal\Property\DateTimesProperty;
 use Eluceo\iCal\Property\Event\Attendees;
+use Eluceo\iCal\Property\Event\Geo;
 use Eluceo\iCal\Property\Event\Organizer;
+use Eluceo\iCal\Property\Event\RecurrenceId;
 use Eluceo\iCal\Property\Event\RecurrenceRule;
+use Eluceo\iCal\Property\RawStringValue;
 use Eluceo\iCal\PropertyBag;
 
 /**
@@ -24,7 +28,7 @@ use Eluceo\iCal\PropertyBag;
  */
 class Event extends Component
 {
-    const TIME_TRANSPARENCY_OPAQUE      = 'OPAQUE';
+    const TIME_TRANSPARENCY_OPAQUE = 'OPAQUE';
     const TIME_TRANSPARENCY_TRANSPARENT = 'TRANSPARENT';
 
     const STATUS_TENTATIVE = 'TENTATIVE';
@@ -64,7 +68,7 @@ class Event extends Component
     protected $duration;
 
     /**
-     * @var boolean
+     * @var bool
      */
     protected $noTime = false;
 
@@ -84,7 +88,7 @@ class Event extends Component
     protected $locationTitle;
 
     /**
-     * @var string
+     * @var Geo
      */
     protected $locationGeo;
 
@@ -99,7 +103,7 @@ class Event extends Component
     protected $organizer;
 
     /**
-     * @see http://www.ietf.org/rfc/rfc2445.txt 4.8.2.7 Time Transparency
+     * @see https://tools.ietf.org/html/rfc5545#section-3.8.2.7
      *
      * @var string
      */
@@ -111,6 +115,13 @@ class Event extends Component
      * @var bool
      */
     protected $useTimezone = false;
+
+    /**
+     * If set will we used as the timezone identifier.
+     *
+     * @var string
+     */
+    protected $timezoneString = '';
 
     /**
      * @var int
@@ -130,12 +141,22 @@ class Event extends Component
     /**
      * @var string
      */
+    protected $descriptionHTML;
+
+    /**
+     * @var string
+     */
     protected $status;
 
     /**
      * @var RecurrenceRule
      */
     protected $recurrenceRule;
+
+    /**
+     * @var array
+     */
+    protected $recurrenceRules = [];
 
     /**
      * This property specifies the date and time that the calendar
@@ -181,19 +202,32 @@ class Event extends Component
     protected $categories;
 
     /**
-     * https://tools.ietf.org/html/rfc5545#section-3.8.1.3
+     * https://tools.ietf.org/html/rfc5545#section-3.8.1.3.
      *
      * @var bool
      */
     protected $isPrivate = false;
 
-    public function __construct($uniqueId = null)
+    /**
+     * Dates to be excluded from a series of events.
+     *
+     * @var \DateTimeInterface[]
+     */
+    protected $exDates = [];
+
+    /**
+     * @var RecurrenceId
+     */
+    protected $recurrenceId;
+
+    public function __construct(string $uniqueId = null)
     {
         if (null == $uniqueId) {
             $uniqueId = uniqid();
         }
 
         $this->uniqueId = $uniqueId;
+        $this->attendees = new Attendees();
     }
 
     /**
@@ -214,7 +248,7 @@ class Event extends Component
         // mandatory information
         $propertyBag->set('UID', $this->uniqueId);
 
-        $propertyBag->add(new DateTimeProperty('DTSTART', $this->dtStart, $this->noTime, $this->useTimezone, $this->useUtc));
+        $propertyBag->add(new DateTimeProperty('DTSTART', $this->dtStart, $this->noTime, $this->useTimezone, $this->useUtc, $this->timezoneString));
         $propertyBag->set('SEQUENCE', $this->sequence);
         $propertyBag->set('TRANSP', $this->transparency);
 
@@ -223,9 +257,13 @@ class Event extends Component
         }
 
         // An event can have a 'dtend' or 'duration', but not both.
-        if (null != $this->dtEnd) {
-            $propertyBag->add(new DateTimeProperty('DTEND', $this->dtEnd, $this->noTime, $this->useTimezone, $this->useUtc));
-        } elseif (null != $this->duration) {
+        if ($this->dtEnd !== null) {
+            $dtEnd = clone $this->dtEnd;
+            if ($this->noTime === true) {
+                $dtEnd = $dtEnd->add(new \DateInterval('P1D'));
+            }
+            $propertyBag->add(new DateTimeProperty('DTEND', $dtEnd, $this->noTime, $this->useTimezone, $this->useUtc, $this->timezoneString));
+        } elseif ($this->duration !== null) {
             $propertyBag->set('DURATION', $this->duration->format('P%dDT%hH%iM%sS'));
         }
 
@@ -241,16 +279,20 @@ class Event extends Component
                 $propertyBag->add(
                     new Property(
                         'X-APPLE-STRUCTURED-LOCATION',
-                        'geo:' . $this->locationGeo,
-                        array(
-                            'VALUE'          => 'URI',
-                            'X-ADDRESS'      => $this->location,
+                        new RawStringValue('geo:' . $this->locationGeo->getGeoLocationAsString(',')),
+                        [
+                            'VALUE' => 'URI',
+                            'X-ADDRESS' => $this->location,
                             'X-APPLE-RADIUS' => 49,
-                            'X-TITLE'        => $this->locationTitle,
-                        )
+                            'X-TITLE' => $this->locationTitle,
+                        ]
                     )
                 );
             }
+        }
+
+        if (null != $this->locationGeo) {
+            $propertyBag->add($this->locationGeo);
         }
 
         if (null != $this->summary) {
@@ -267,8 +309,33 @@ class Event extends Component
             $propertyBag->set('DESCRIPTION', $this->description);
         }
 
+        if (null != $this->descriptionHTML) {
+            $propertyBag->add(
+                new Property(
+                    'X-ALT-DESC',
+                    $this->descriptionHTML,
+                    [
+                        'FMTTYPE' => 'text/html',
+                    ]
+                )
+            );
+        }
+
         if (null != $this->recurrenceRule) {
             $propertyBag->set('RRULE', $this->recurrenceRule);
+        }
+
+        foreach ($this->recurrenceRules as $recurrenceRule) {
+            $propertyBag->set('RRULE', $recurrenceRule);
+        }
+
+        if (null != $this->recurrenceId) {
+            $this->recurrenceId->applyTimeSettings($this->noTime, $this->useTimezone, $this->useUtc, $this->timezoneString);
+            $propertyBag->add($this->recurrenceId);
+        }
+
+        if (!empty($this->exDates)) {
+            $propertyBag->add(new DateTimesProperty('EXDATE', $this->exDates, $this->noTime, $this->useTimezone, $this->useUtc, $this->timezoneString));
         }
 
         if ($this->cancelled) {
@@ -288,7 +355,7 @@ class Event extends Component
         }
 
         $propertyBag->add(
-            new DateTimeProperty('DTSTAMP', $this->dtStamp ?: new \DateTime(), false, false, true)
+            new DateTimeProperty('DTSTAMP', $this->dtStamp ?: new \DateTimeImmutable(), false, false, true)
         );
 
         if ($this->created) {
@@ -326,6 +393,11 @@ class Event extends Component
         return $this;
     }
 
+    public function getDtStart()
+    {
+        return $this->dtStart;
+    }
+
     /**
      * @param $dtStamp
      *
@@ -351,17 +423,39 @@ class Event extends Component
     }
 
     /**
-     * @param        $location
-     * @param string $title
-     * @param null   $geo
+     * @param string     $location
+     * @param string     $title
+     * @param Geo|string $geo
      *
      * @return $this
      */
     public function setLocation($location, $title = '', $geo = null)
     {
-        $this->location      = $location;
+        if (is_scalar($geo)) {
+            $geo = Geo::fromString($geo);
+        } elseif (!is_null($geo) && !$geo instanceof Geo) {
+            $className = get_class($geo);
+            throw new \InvalidArgumentException(
+                "The parameter 'geo' must be a string or an instance of " . Geo::class
+                . " but an instance of {$className} was given."
+            );
+        }
+
+        $this->location = $location;
         $this->locationTitle = $title;
-        $this->locationGeo   = $geo;
+        $this->locationGeo = $geo;
+
+        return $this;
+    }
+
+    /**
+     * @param Geo $geoProperty
+     *
+     * @return $this
+     */
+    public function setGeoLocation(Geo $geoProperty)
+    {
+        $this->locationGeo = $geoProperty;
 
         return $this;
     }
@@ -400,6 +494,7 @@ class Event extends Component
 
     /**
      * @param Organizer $organizer
+     *
      * @return $this
      */
     public function setOrganizer(Organizer $organizer)
@@ -474,6 +569,26 @@ class Event extends Component
     }
 
     /**
+     * @param $timezoneString
+     *
+     * @return $this
+     */
+    public function setTimezoneString($timezoneString)
+    {
+        $this->timezoneString = $timezoneString;
+
+        return $this;
+    }
+
+    /**
+     * @return bool
+     */
+    public function getTimezoneString()
+    {
+        return $this->timezoneString;
+    }
+
+    /**
      * @param Attendees $attendees
      *
      * @return $this
@@ -491,11 +606,8 @@ class Event extends Component
      *
      * @return $this
      */
-    public function addAttendee($attendee, $params = array())
+    public function addAttendee($attendee, $params = [])
     {
-        if (!isset($this->attendees)) {
-            $this->attendees = new Attendees();
-        }
         $this->attendees->add($attendee, $params);
 
         return $this;
@@ -504,7 +616,7 @@ class Event extends Component
     /**
      * @return Attendees
      */
-    public function getAttendees()
+    public function getAttendees(): Attendees
     {
         return $this->attendees;
     }
@@ -517,6 +629,18 @@ class Event extends Component
     public function setDescription($description)
     {
         $this->description = $description;
+
+        return $this;
+    }
+
+    /**
+     * @param $descriptionHTML
+     *
+     * @return $this
+     */
+    public function setDescriptionHTML($descriptionHTML)
+    {
+        $this->descriptionHTML = $descriptionHTML;
 
         return $this;
     }
@@ -539,6 +663,14 @@ class Event extends Component
     public function getDescription()
     {
         return $this->description;
+    }
+
+    /**
+     * @return string
+     */
+    public function getDescriptionHTML()
+    {
+        return $this->descriptionHTML;
     }
 
     /**
@@ -597,23 +729,51 @@ class Event extends Component
     }
 
     /**
+     * @deprecated Deprecated since version 0.11.0, to be removed in 1.0. Use addRecurrenceRule instead.
+     *
      * @param RecurrenceRule $recurrenceRule
      *
      * @return $this
      */
     public function setRecurrenceRule(RecurrenceRule $recurrenceRule)
     {
+        @trigger_error('setRecurrenceRule() is deprecated since version 0.11.0 and will be removed in 1.0. Use addRecurrenceRule instead.', E_USER_DEPRECATED);
+
         $this->recurrenceRule = $recurrenceRule;
 
         return $this;
     }
 
     /**
+     * @deprecated Deprecated since version 0.11.0, to be removed in 1.0. Use getRecurrenceRules instead.
+     *
      * @return RecurrenceRule
      */
     public function getRecurrenceRule()
     {
+        @trigger_error('getRecurrenceRule() is deprecated since version 0.11.0 and will be removed in 1.0. Use getRecurrenceRules instead.', E_USER_DEPRECATED);
+
         return $this->recurrenceRule;
+    }
+
+    /**
+     * @param RecurrenceRule $recurrenceRule
+     *
+     * @return $this
+     */
+    public function addRecurrenceRule(RecurrenceRule $recurrenceRule)
+    {
+        $this->recurrenceRules[] = $recurrenceRule;
+
+        return $this;
+    }
+
+    /**
+     * @return array
+     */
+    public function getRecurrenceRules()
+    {
+        return $this->recurrenceRules;
     }
 
     /**
@@ -653,14 +813,67 @@ class Event extends Component
     }
 
     /**
-     * Sets the event privacy
+     * Sets the event privacy.
      *
      * @param bool $flag
+     *
      * @return $this
      */
     public function setIsPrivate($flag)
     {
         $this->isPrivate = (bool) $flag;
+
+        return $this;
+    }
+
+    /**
+     * @param \DateTimeInterface $dateTime
+     *
+     * @return \Eluceo\iCal\Component\Event
+     */
+    public function addExDate(\DateTimeInterface $dateTime)
+    {
+        $this->exDates[] = $dateTime;
+
+        return $this;
+    }
+
+    /**
+     * @return \DateTimeInterface[]
+     */
+    public function getExDates()
+    {
+        return $this->exDates;
+    }
+
+    /**
+     * @param \DateTimeInterface[]
+     *
+     * @return \Eluceo\iCal\Component\Event
+     */
+    public function setExDates(array $exDates)
+    {
+        $this->exDates = $exDates;
+
+        return $this;
+    }
+
+    /**
+     * @return \Eluceo\iCal\Property\Event\RecurrenceId
+     */
+    public function getRecurrenceId()
+    {
+        return $this->recurrenceId;
+    }
+
+    /**
+     * @param RecurrenceId $recurrenceId
+     *
+     * @return \Eluceo\iCal\Component\Event
+     */
+    public function setRecurrenceId(RecurrenceId $recurrenceId)
+    {
+        $this->recurrenceId = $recurrenceId;
 
         return $this;
     }

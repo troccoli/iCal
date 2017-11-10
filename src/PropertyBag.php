@@ -5,19 +5,18 @@
  *
  * (c) Markus Poerschke <markus@eluceo.de>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
  */
 
 namespace Eluceo\iCal;
-
 
 class PropertyBag implements \IteratorAggregate
 {
     /**
      * @var array
      */
-    protected $elements = array();
+    protected $elements = [];
 
     /**
      * Creates a new Property with $name, $value and $params.
@@ -28,10 +27,9 @@ class PropertyBag implements \IteratorAggregate
      *
      * @return $this
      */
-    public function set($name, $value, $params = array())
+    public function set($name, $value, $params = [])
     {
-        $property         = new Property($name, $value, $params);
-        $this->elements[] = $property;
+        $this->add(new Property($name, $value, $params));
 
         return $this;
     }
@@ -41,15 +39,13 @@ class PropertyBag implements \IteratorAggregate
      *
      * @return null|Property
      */
-    public function get($name)
+    public function get(string $name)
     {
-        // Searching Property in elements-array
-        /** @var $property Property */
-        foreach ($this->elements as $property) {
-            if ($property->getName() == $name) {
-                return $property;
-            }
+        if (isset($this->elements[$name])) {
+            return $this->elements[$name];
         }
+
+        return null;
     }
 
     /**
@@ -63,12 +59,13 @@ class PropertyBag implements \IteratorAggregate
      */
     public function add(Property $property)
     {
-        // Property already exists?
-        if (null !== $this->get($property->getName())) {
-            throw new \Exception("Property with name '{$property->getName()}' already exists");
+        $name = $property->getName();
+
+        if (isset($this->elements[$name])) {
+            throw new \Exception("Property with name '{$name}' already exists");
         }
 
-        $this->elements[] = $property;
+        $this->elements[$name] = $property;
 
         return $this;
     }

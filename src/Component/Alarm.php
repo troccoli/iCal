@@ -3,17 +3,17 @@
 /*
  * This file is part of the eluceo/iCal package.
  *
- * (c) Radoslav Lukac <dev@elceka.sk>
+ * (c) Markus Poerschke <markus@eluceo.de>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
  */
 
 namespace Eluceo\iCal\Component;
 
 use Eluceo\iCal\Component;
-use Eluceo\iCal\PropertyBag;
 use Eluceo\iCal\Property;
+use Eluceo\iCal\PropertyBag;
 
 /**
  * Implementation of the VALARM component.
@@ -25,11 +25,11 @@ class Alarm extends Component
      *
      * According to RFC 5545: 3.8.6.1. Action
      *
-     * @link http://tools.ietf.org/html/rfc5545#section-3.8.6.1
+     * @see http://tools.ietf.org/html/rfc5545#section-3.8.6.1
      */
-    const ACTION_AUDIO   = 'AUDIO';
+    const ACTION_AUDIO = 'AUDIO';
     const ACTION_DISPLAY = 'DISPLAY';
-    const ACTION_EMAIL   = 'EMAIL';
+    const ACTION_EMAIL = 'EMAIL';
 
     protected $action;
     protected $repeat;
@@ -40,7 +40,7 @@ class Alarm extends Component
 
     public function getType()
     {
-        return "VALARM";
+        return 'VALARM';
     }
 
     public function getAction()

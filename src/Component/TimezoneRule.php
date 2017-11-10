@@ -3,17 +3,17 @@
 /*
  * This file is part of the eluceo/iCal package.
  *
- * (c) Ronny Unger <ronny.unger@gmx.net>
+ * (c) Markus Poerschke <markus@eluceo.de>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
  */
 
 namespace Eluceo\iCal\Component;
 
 use Eluceo\iCal\Component;
-use Eluceo\iCal\PropertyBag;
 use Eluceo\iCal\Property\Event\RecurrenceRule;
+use Eluceo\iCal\PropertyBag;
 
 /**
  * Implementation of Standard Time and Daylight Saving Time observances (or rules)
@@ -45,7 +45,7 @@ class TimezoneRule extends Component
     protected $tzName;
 
     /**
-     * @var \DateTime
+     * @var \DateTimeInterface
      */
     protected $dtStart;
 
@@ -78,23 +78,23 @@ class TimezoneRule extends Component
     {
         $propertyBag = new PropertyBag();
 
-        if (null !== $this->getTzName()) {
+        if ($this->getTzName()) {
             $propertyBag->set('TZNAME', $this->getTzName());
         }
 
-        if (null !== $this->getTzOffsetFrom()) {
+        if ($this->getTzOffsetFrom()) {
             $propertyBag->set('TZOFFSETFROM', $this->getTzOffsetFrom());
         }
 
-        if (null !== $this->getTzOffsetTo()) {
+        if ($this->getTzOffsetTo()) {
             $propertyBag->set('TZOFFSETTO', $this->getTzOffsetTo());
         }
 
-        if (null !== $this->getDtStart()) {
+        if ($this->getDtStart()) {
             $propertyBag->set('DTSTART', $this->getDtStart());
         }
 
-        if (null !== $this->recurrenceRule) {
+        if ($this->recurrenceRule) {
             $propertyBag->set('RRULE', $this->recurrenceRule);
         }
 
@@ -138,11 +138,11 @@ class TimezoneRule extends Component
     }
 
     /**
-     * @param \DateTime $dtStart
+     * @param \DateTimeInterface $dtStart
      *
      * @return $this
      */
-    public function setDtStart(\DateTime $dtStart)
+    public function setDtStart(\DateTimeInterface $dtStart)
     {
         $this->dtStart = $dtStart;
 
@@ -210,6 +210,6 @@ class TimezoneRule extends Component
             return $this->dtStart->format('Ymd\THis');
         }
 
-        return nulll;
+        return;
     }
 }
