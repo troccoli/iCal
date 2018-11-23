@@ -1,6 +1,14 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## [unreleased]
+### Added
+- BYSETPOS to RecurrenceRule [#113](https://github.com/markuspoerschke/iCal/issues/113)
+
+## [0.14.0] - 2018-03-13
+### Fixed
+- Properly escape `BY*` rules like `BYDAY`. [#105](https://github.com/markuspoerschke/iCal/issues/105)
+
 ## [0.13.0] - 2017-10-26
 ### Changed
 - Improve performance for long lines. By using mbstring the folding of lines is much faster and consumes less CPU and memory. [#103](https://github.com/markuspoerschke/iCal/pull/103)
@@ -28,6 +36,18 @@ The former default value was set to one week. If you want the behavior from vers
 ### Removed
 - Remove class `\Eluceo\iCal\Property\Event\Description` [#61](https://github.com/markuspoerschke/iCal/pull/61)
 - Remove class `\Eluceo\iCal\Util\PropertyValueUtil` [#61](https://github.com/markuspoerschke/iCal/pull/61)
+
+## [0.11.5] - 2018-03-13
+### Changed
+- Convert time to UTC if UTC mode is enabled. [#111](https://github.com/markuspoerschke/iCal/issues/111)
+
+## [0.11.4] - 2017-10-26
+### Changed
+- Improve performance for long lines. By using mbstring the folding of lines is much faster and consumes less CPU and memory. [#104](https://github.com/markuspoerschke/iCal/pull/104)
+
+## [0.11.3] - 2017-04-25
+### Fixed
+- Fix the GEO property (compatibility to PHP < 7) [#91](https://github.com/markuspoerschke/iCal/pull/91) [#91](https://github.com/markuspoerschke/iCal/pull/93)
 
 ## [0.11.2] - 2017-04-21
 ### Fixed
@@ -73,9 +93,14 @@ The former default value was set to one week. If you want the behavior from vers
 - **Breaking Change:** Changed signature of the ```Event::setOrganizer``` method. Now there is is only one parameter that must be an instance of ```Property\Organizer```.
 - Updated install section in README.md [#54](https://github.com/markuspoerschke/iCal/pull/53)
 
+[unreleased]: https://github.com/markuspoerschke/iCal/compare/0.14.0...master
+[0.14.0]: https://github.com/markuspoerschke/iCal/compare/0.13.0...0.14.0
 [0.13.0]: https://github.com/markuspoerschke/iCal/compare/0.12.1...0.13.0
 [0.12.1]: https://github.com/markuspoerschke/iCal/compare/0.12.0...0.12.1
 [0.12.0]: https://github.com/markuspoerschke/iCal/compare/0.11.0...0.12.0
+[0.11.5]: https://github.com/markuspoerschke/iCal/compare/0.11.4...0.11.5
+[0.11.4]: https://github.com/markuspoerschke/iCal/compare/0.11.3...0.11.4
+[0.11.3]: https://github.com/markuspoerschke/iCal/compare/0.11.2...0.11.3
 [0.11.2]: https://github.com/markuspoerschke/iCal/compare/0.11.1...0.11.2
 [0.11.1]: https://github.com/markuspoerschke/iCal/compare/0.11.0...0.11.1
 [0.11.0]: https://github.com/markuspoerschke/iCal/compare/0.10.1...0.11.0
