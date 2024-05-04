@@ -1,31 +1,64 @@
 <?php
 
-// use composer autoloader
+/*
+ * This file is part of the eluceo/iCal package.
+ *
+ * (c) 2024 Markus Poerschke <markus@poerschke.nrw>
+ *
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ */
+
+namespace Example;
+
+use Eluceo\iCal\Domain\Entity\Calendar;
+use Eluceo\iCal\Domain\Entity\Event;
+use Eluceo\iCal\Presentation\Component;
+use Eluceo\iCal\Presentation\Component\Property;
+use Eluceo\iCal\Presentation\Component\Property\Value\TextValue;
+use Eluceo\iCal\Presentation\Factory\CalendarFactory;
+use Eluceo\iCal\Presentation\Factory\EventFactory;
+use Generator;
+
 require_once __DIR__ . '/../vendor/autoload.php';
 
-// set default timezone (PHP 5.4)
-date_default_timezone_set('Europe/Berlin');
+// 1. Define a custom event domain entity.
+class CustomEvent extends Event
+{
+    private string $myCustomProperty = 'foo bar baz!';
 
-// 1. Create new calendar
-$vCalendar = new \Eluceo\iCal\Component\Calendar('www.example.com');
+    public function getMyCustomProperty(): string
+    {
+        return $this->myCustomProperty;
+    }
+}
 
-// 2. Create an event
-$vEvent = new \Eluceo\iCal\Component\Event();
-$vEvent->setDtStart(new \DateTime('2012-12-24'));
-$vEvent->setDtEnd(new \DateTime('2012-12-24'));
-$vEvent->setNoTime(true);
-$vEvent->setSummary('Summary with some german "umlauten" and a backslash \\: Kinder mögen Äpfel pflücken.');
-$vEvent->setCategories(['holidays']);
+// 2. Create a custom event factory,
+//    that can add the additional property to the presentation component.
+class CustomEventFactory extends EventFactory
+{
+    protected function getProperties(Event $event): Generator
+    {
+        yield from parent::getProperties($event);
+        if ($event instanceof CustomEvent) {
+            yield new Property(
+                'X-CUSTOM',
+                new TextValue($event->getMyCustomProperty())
+            );
+        }
+    }
+}
 
-// Adding Timezone (optional)
-$vEvent->setUseTimezone(true);
+// 3. Create events and calendar objects as normal.
+$event = new CustomEvent();
+$event->setSummary('This is a test event');
+$calendar = new Calendar([$event]);
 
-// 3. Add event to calendar
-$vCalendar->addComponent($vEvent);
+// 4. Pass your custom event factory to the calendar factory via the constructor call.
+$calendarComponentFactory = new CalendarFactory(new CustomEventFactory());
+$calendarComponent = $calendarComponentFactory->createCalendar($calendar);
 
-// 4. Set headers
+// 5. The output can happen as usual.
 header('Content-Type: text/calendar; charset=utf-8');
 header('Content-Disposition: attachment; filename="cal.ics"');
-
-// 5. Output
-echo $vCalendar->render();
+echo $calendarComponent;

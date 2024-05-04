@@ -1,3 +1,9 @@
-/.php_cs.cache
-/composer.lock
+/.idea
+/.vscode
+/*.cache
+/build
+/Makefile.local
+/node_modules
+/phpunit.xml
+/report
 /vendor
